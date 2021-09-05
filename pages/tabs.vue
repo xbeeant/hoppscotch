@@ -14,9 +14,10 @@
         "
       >
         <draggable
-          :list="tabs"
-          class="flex transition overflow-x-auto hide-scrollbar"
           v-bind="dragOptions"
+          :list="tabs"
+          :style="tabsWidth"
+          class="flex transition overflow-x-auto hide-scrollbar"
         >
           <transition-group
             class="divide-primaryDark divide-x flex"
@@ -81,64 +82,65 @@
   </Splitpanes>
 </template>
 
-<script>
+<script setup lang="ts">
 import draggable from "vuedraggable"
 import { Splitpanes, Pane } from "splitpanes"
 import "splitpanes/dist/splitpanes.css"
+import { computed, ref } from "@nuxtjs/composition-api"
 
-export default {
-  components: { Splitpanes, Pane, draggable },
-  data() {
-    return {
-      currentTabId: 1,
-      nextTabId: 4,
-      tabs: [
-        {
-          id: 1,
-          name: "Untitled request",
-        },
-      ],
-    }
+const currentTabId = ref(1)
+const nextTabId = ref(4)
+const tabs = ref([
+  {
+    id: 1,
+    name: "Untitled request",
   },
-  computed: {
-    active() {
-      return (id) => id === this.currentTabId && "-active"
-    },
-    dragOptions() {
-      return {
-        animation: 250,
-        disabled: false,
-        ghostClass: "-dragging",
-      }
-    },
-  },
-  methods: {
-    changeTab(id) {
-      this.currentTabId = id
-    },
-    beforeCloseTab(e) {
-      e.stopPropagation()
-    },
-    addTab() {
-      this.tabs.push({
-        id: this.nextTabId,
-        name: "Untitled request",
-      })
-      this.currentTabId = this.nextTabId
-      this.nextTabId++
-    },
-    closeTab(id) {
-      if (this.tabs.length - 1)
-        this.tabs.forEach((tab, index) => {
-          tab.id === id &&
-            this.tabs.splice(index, 1) &&
-            this.currentTabId === id &&
-            (this.currentTabId = this.tabs[index]
-              ? this.tabs[index].id
-              : this.tabs[index - 1].id)
-        })
-    },
-  },
+])
+
+const dragOptions = computed(() => ({
+  group: "tabs",
+  animation: 250,
+  handle: ".tab",
+  draggable: ".tab",
+  ghostClass: "-dragging",
+}))
+
+const tabsWidth = computed(() => ({
+  maxWidth: tabs.value.length * 184 + "px",
+  width: "100%",
+  minWidth: "0px",
+  transition: "max-width 0.2s",
+}))
+
+const active = (id: number) => id === currentTabId.value && "-active"
+
+const changeTab = (id: number) => {
+  currentTabId.value = id
+}
+
+const beforeCloseTab = (e: { stopPropagation: () => void }) => {
+  e.stopPropagation()
+}
+
+const addTab = () => {
+  tabs.value.push({
+    id: nextTabId.value,
+    name: "Untitled request",
+  })
+  currentTabId.value = nextTabId.value
+  nextTabId.value++
+}
+
+const closeTab = (id: number) => {
+  if (tabs.value.length - 1)
+    tabs.value.forEach((tab, index) => {
+      tab.id === id &&
+        tabs.value.splice(index, 1) &&
+        currentTabId.value === id &&
+        (currentTabId.value = tabs.value[index]
+          ? tabs.value[index].id
+          : tabs.value[index - 1].id)
+    })
 }
 </script>
 
@@ -150,7 +152,7 @@ export default {
   @apply pr-1;
   @apply py-1;
   @apply font-semibold;
-  @apply max-w-46;
+  @apply w-46;
   @apply transition;
   @apply flex-1;
   @apply items-center;
@@ -163,10 +165,6 @@ export default {
   &.-active {
     @apply text-secondaryDark;
     @apply bg-primary;
-  }
-
-  &.-dragging {
-    @apply opacity-0;
   }
 }
 
