@@ -102,7 +102,7 @@ const dragOptions = computed(() => ({
   animation: 250,
   handle: ".tab",
   draggable: ".tab",
-  ghostClass: "-dragging",
+  ghostClass: "cursor-move",
 }))
 
 const tabsWidth = computed(() => ({
@@ -162,9 +162,25 @@ const closeTab = (id: number) => {
   @apply hover:text-secondary;
   @apply before:hover:bg-primaryDark;
 
+  &::after {
+    @apply absolute;
+    @apply left-0;
+    @apply right-0;
+    @apply top-0;
+    @apply bg-transparent;
+    @apply z-2;
+    @apply h-0.5;
+
+    content: "";
+  }
+
   &.-active {
     @apply text-secondaryDark;
     @apply bg-primary;
+
+    &::after {
+      @apply bg-accent;
+    }
   }
 }
 
