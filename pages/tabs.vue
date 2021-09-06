@@ -24,25 +24,23 @@
             name="fade"
             appear
           >
-            <template v-for="tab in tabs">
-              <div
-                :key="tab.id"
-                :class="[active(tab.id), 'tab']"
-                @mousedown="changeTab(tab.id)"
-              >
-                <span class="truncate">{{ tab.name }}</span>
-                <ButtonSecondary
-                  svg="x"
-                  :class="[active(tab.id), 'close']"
-                  class="rounded ml-4"
-                  @mousedown="beforeCloseTab($event)"
-                  @click.native="closeTab(tab.id)"
-                />
-              </div>
-            </template>
+            <button
+              v-for="tab in tabs"
+              :key="`tab-${tab.id}`"
+              :class="[active(tab.id), 'tab']"
+              @click="changeTab(tab.id)"
+            >
+              <span class="truncate">{{ tab.name }}</span>
+              <ButtonSecondary
+                svg="x"
+                :class="[active(tab.id), 'close']"
+                class="rounded my-0.5 mr-0.5 ml-4 !p-1"
+                @click.native="closeTab(tab.id)"
+              />
+            </button>
           </transition-group>
         </draggable>
-        <span class="bg-primaryLight flex px-1 items-center justify-center">
+        <span class="bg-primaryLight flex p-1 items-center justify-center">
           <ButtonSecondary
             svg="plus"
             class="rounded right-0 sticky"
@@ -53,20 +51,24 @@
       <Splitpanes class="smart-splitter" :dbl-click-splitter="false" horizontal>
         <Pane class="hide-scrollbar !overflow-auto">
           <div class="content">
-            <template v-for="tab in tabs">
-              <div :key="tab.id" :class="[active(tab.id), 'tab-content']">
-                {{ tab.id }}
-              </div>
-            </template>
+            <div
+              v-for="tab in tabs"
+              :key="`request-${tab.id}`"
+              :class="[active(tab.id), 'tab-content']"
+            >
+              {{ tab.id }}
+            </div>
           </div>
         </Pane>
         <Pane class="hide-scrollbar !overflow-auto">
           <div class="content">
-            <template v-for="tab in tabs">
-              <div :key="tab.id" :class="[active(tab.id), 'tab-content']">
-                {{ tab.id }}
-              </div>
-            </template>
+            <div
+              v-for="tab in tabs"
+              :key="`response-${tab.id}`"
+              :class="[active(tab.id), 'tab-content']"
+            >
+              {{ tab.id }}
+            </div>
           </div>
         </Pane>
       </Splitpanes>
@@ -88,11 +90,11 @@ import { Splitpanes, Pane } from "splitpanes"
 import "splitpanes/dist/splitpanes.css"
 import { computed, ref } from "@nuxtjs/composition-api"
 
-const currentTabId = ref(1)
-const nextTabId = ref(4)
+const currentTabId = ref(0)
+const nextTabId = ref(1)
 const tabs = ref([
   {
-    id: 1,
+    id: 0,
     name: "Untitled request",
   },
 ])
@@ -116,10 +118,6 @@ const active = (id: number) => id === currentTabId.value && "-active"
 
 const changeTab = (id: number) => {
   currentTabId.value = id
-}
-
-const beforeCloseTab = (e: { stopPropagation: () => void }) => {
-  e.stopPropagation()
 }
 
 const addTab = () => {
@@ -160,7 +158,7 @@ const closeTab = (id: number) => {
   @apply text-secondaryLight;
   @apply hover:bg-primaryDark;
   @apply hover:text-secondary;
-  @apply before:hover:bg-primaryDark;
+  @apply focus-visible:text-secondaryDark;
 
   &::after {
     @apply absolute;
@@ -172,6 +170,10 @@ const closeTab = (id: number) => {
     @apply h-0.5;
 
     content: "";
+  }
+
+  &:focus::after {
+    @apply bg-divider;
   }
 
   &.-active {
