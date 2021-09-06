@@ -1,6 +1,6 @@
 <template>
   <Splitpanes class="smart-splitter" :dbl-click-splitter="false" vertical>
-    <Pane class="hide-scrollbar !overflow-auto">
+    <Pane class="flex flex-col hide-scrollbar !overflow-auto">
       <div
         class="
           divide-primaryDark divide-x
@@ -27,15 +27,15 @@
             <button
               v-for="tab in tabs"
               :key="`tab-${tab.id}`"
-              :class="[active(tab.id), 'tab']"
+              :class="[{ active: active(tab.id) }, 'tab']"
               @click="changeTab(tab.id)"
             >
               <span class="truncate">{{ tab.name }}</span>
               <ButtonSecondary
                 svg="x"
-                :class="[active(tab.id), 'close']"
+                :class="[{ active: active(tab.id) }, 'close']"
                 class="rounded my-0.5 mr-0.5 ml-4 !p-1"
-                @click.native="closeTab(tab.id)"
+                @click.native.stop="closeTab(tab.id)"
               />
             </button>
           </transition-group>
@@ -50,25 +50,31 @@
       </div>
       <Splitpanes class="smart-splitter" :dbl-click-splitter="false" horizontal>
         <Pane class="hide-scrollbar !overflow-auto">
-          <div class="content">
+          <div v-if="tabs.length">
             <div
               v-for="tab in tabs"
               :key="`request-${tab.id}`"
-              :class="[active(tab.id), 'tab-content']"
+              :class="[{ active: active(tab.id) }, 'tab-content']"
             >
               {{ tab.id }}
             </div>
           </div>
+          <div v-else>
+            <div class="empty-tab-content">empty</div>
+          </div>
         </Pane>
         <Pane class="hide-scrollbar !overflow-auto">
-          <div class="content">
+          <div v-if="tabs.length">
             <div
               v-for="tab in tabs"
               :key="`response-${tab.id}`"
-              :class="[active(tab.id), 'tab-content']"
+              :class="[{ active: active(tab.id) }, 'tab-content']"
             >
               {{ tab.id }}
             </div>
+          </div>
+          <div v-else>
+            <div class="empty-tab-content">empty</div>
           </div>
         </Pane>
       </Splitpanes>
@@ -108,13 +114,13 @@ const dragOptions = computed(() => ({
 }))
 
 const tabsWidth = computed(() => ({
-  maxWidth: tabs.value.length * 184 + "px",
+  maxWidth: `${tabs.value.length * 184}px`,
   width: "100%",
   minWidth: "0px",
   transition: "max-width 0.2s",
 }))
 
-const active = (id: number) => id === currentTabId.value && "-active"
+const active = (id: number) => id === currentTabId.value
 
 const changeTab = (id: number) => {
   currentTabId.value = id
@@ -130,15 +136,12 @@ const addTab = () => {
 }
 
 const closeTab = (id: number) => {
-  if (tabs.value.length - 1)
-    tabs.value.forEach((tab, index) => {
-      tab.id === id &&
-        tabs.value.splice(index, 1) &&
-        currentTabId.value === id &&
-        (currentTabId.value = tabs.value[index]
-          ? tabs.value[index].id
-          : tabs.value[index - 1].id)
-    })
+  const index = tabs.value.findIndex((tab) => tab.id === id)
+  tabs.value.splice(index, 1)
+  if (currentTabId.value === id) {
+    if (tabs.value[index]?.id) currentTabId.value = tabs.value[index]?.id
+    else currentTabId.value = tabs.value[tabs.value.length - 1]?.id
+  }
 }
 </script>
 
@@ -176,7 +179,7 @@ const closeTab = (id: number) => {
     @apply bg-divider;
   }
 
-  &.-active {
+  &.active {
     @apply text-secondaryDark;
     @apply bg-primary;
 
@@ -190,7 +193,7 @@ const closeTab = (id: number) => {
   @apply p-4;
   @apply hidden;
 
-  &.-active {
+  &.active {
     @apply flex;
   }
 }
@@ -198,7 +201,7 @@ const closeTab = (id: number) => {
 .close {
   @apply opacity-50;
 
-  &.-active {
+  &.active {
     @apply opacity-100;
   }
 }
