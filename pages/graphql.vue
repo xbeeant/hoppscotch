@@ -1,32 +1,30 @@
 <template>
-  <div>
-    <Splitpanes class="smart-splitter" :dbl-click-splitter="false" vertical>
-      <Pane class="hide-scrollbar !overflow-auto">
-        <Splitpanes
-          class="smart-splitter"
-          :dbl-click-splitter="false"
-          horizontal
-        >
-          <Pane class="hide-scrollbar !overflow-auto">
-            <GraphqlRequest :conn="gqlConn" />
-            <GraphqlRequestOptions :conn="gqlConn" />
-          </Pane>
-          <Pane class="hide-scrollbar !overflow-auto">
-            <GraphqlResponse :conn="gqlConn" />
-          </Pane>
-        </Splitpanes>
-      </Pane>
-      <Pane
-        v-if="RIGHT_SIDEBAR"
-        max-size="35"
-        size="25"
-        min-size="20"
-        class="hide-scrollbar !overflow-auto"
-      >
-        <GraphqlSidebar :conn="gqlConn" />
-      </Pane>
-    </Splitpanes>
-  </div>
+  <Splitpanes
+    class="smart-splitter"
+    :dbl-click-splitter="false"
+    :horizontal="!(windowInnerWidth.x.value >= 768)"
+  >
+    <Pane class="hide-scrollbar !overflow-auto">
+      <Splitpanes class="smart-splitter" :dbl-click-splitter="false" horizontal>
+        <Pane class="hide-scrollbar !overflow-auto">
+          <GraphqlRequest :conn="gqlConn" />
+          <GraphqlRequestOptions :conn="gqlConn" />
+        </Pane>
+        <Pane class="hide-scrollbar !overflow-auto">
+          <GraphqlResponse :conn="gqlConn" />
+        </Pane>
+      </Splitpanes>
+    </Pane>
+    <Pane
+      v-if="RIGHT_SIDEBAR"
+      max-size="35"
+      size="25"
+      min-size="20"
+      class="hide-scrollbar !overflow-auto"
+    >
+      <GraphqlSidebar :conn="gqlConn" />
+    </Pane>
+  </Splitpanes>
 </template>
 
 <script lang="ts">
@@ -36,6 +34,7 @@ import "splitpanes/dist/splitpanes.css"
 import { useSetting } from "~/newstore/settings"
 import { GQLConnection } from "~/helpers/GQLConnection"
 import { useNuxt, useReadonlyStream } from "~/helpers/utils/composables"
+import useWindowSize from "~/helpers/utils/useWindowSize"
 
 export default defineComponent({
   components: { Splitpanes, Pane },
@@ -58,6 +57,7 @@ export default defineComponent({
     })
 
     return {
+      windowInnerWidth: useWindowSize(),
       RIGHT_SIDEBAR: useSetting("RIGHT_SIDEBAR"),
       gqlConn,
     }
