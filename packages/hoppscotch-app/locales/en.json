@@ -217,6 +217,7 @@
     "from_my_collections": "Import from My Collections",
     "gist_url": "Enter Gist URL",
     "json": "Import from JSON",
+    "openapi": "Import From OpenAPI",
     "title": "Import"
   },
   "layout": {
@@ -261,6 +262,7 @@
   "request": {
     "added": "Request added",
     "authorization": "Authorization",
+    "base_url": "Base URL",
     "body": "Request Body",
     "choose_language": "Choose language",
     "content_type": "Content Type",
