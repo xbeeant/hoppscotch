@@ -179,6 +179,14 @@
       :collections-type="collectionsType"
       @hide-modal="displayModalImportExport(false)"
       @update-team-collections="updateTeamCollections"
+      @openapi-import="initModalImportOpenAPI"
+    />
+    <CollectionsImportOpenAPI
+      :show="showModalImportOpenAPI"
+      :collections-type="collectionsType"
+      :imported="openapiParsed"
+      @hide-modal="displayModalImportOpenAPI(false)"
+      @update-team-collections="updateTeamCollections"
     />
   </AppSection>
 </template>
@@ -233,6 +241,7 @@ export default defineComponent({
       showModalAdd: false,
       showModalEdit: false,
       showModalImportExport: false,
+      showModalImportOpenAPI: false,
       showModalAddFolder: false,
       showModalEditFolder: false,
       showModalEditRequest: false,
@@ -251,6 +260,7 @@ export default defineComponent({
       },
       teamCollectionAdapter: new TeamCollectionAdapter(null),
       teamCollectionsNew: [],
+      openapiParsed: undefined,
     }
   },
   computed: {
@@ -482,6 +492,9 @@ export default defineComponent({
     displayModalImportExport(shouldDisplay) {
       this.showModalImportExport = shouldDisplay
     },
+    displayModalImportOpenAPI(shouldDisplay) {
+      this.showModalImportOpenAPI = shouldDisplay
+    },
     displayModalAddFolder(shouldDisplay) {
       this.showModalAddFolder = shouldDisplay
 
@@ -496,6 +509,10 @@ export default defineComponent({
       this.showModalEditRequest = shouldDisplay
 
       if (!shouldDisplay) this.resetSelectedData()
+    },
+    initModalImportOpenAPI(collection) {
+      this.openapiParsed = collection
+      this.showModalImportOpenAPI = true
     },
     editCollection(collection, collectionIndex) {
       this.$data.editingCollection = collection
