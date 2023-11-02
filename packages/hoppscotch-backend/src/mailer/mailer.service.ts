@@ -7,6 +7,7 @@ import {
 import { throwErr } from 'src/utils';
 import { EMAIL_FAILED } from 'src/errors';
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
+import axios from "axios";
 
 @Injectable()
 export class MailerService {
@@ -43,12 +44,21 @@ export class MailerService {
     mailDesc: MailDescription | UserMagicLinkMailDescription,
   ) {
     try {
-      await this.nestMailerService.sendMail({
-        to,
-        template: mailDesc.template,
-        subject: this.resolveSubjectForMailDesc(mailDesc),
-        context: mailDesc.variables,
-      });
+      if (process.env.MAIL_API) {
+        await axios.post(process.env.MAIL_API, {
+          to,
+          template: mailDesc.template,
+          subject: this.resolveSubjectForMailDesc(mailDesc),
+          context: mailDesc.variables,
+        });
+      } else {
+        await this.nestMailerService.sendMail({
+          to,
+          template: mailDesc.template,
+          subject: this.resolveSubjectForMailDesc(mailDesc),
+          context: mailDesc.variables,
+        });
+      }
     } catch (error) {
       return throwErr(EMAIL_FAILED);
     }
@@ -65,6 +75,15 @@ export class MailerService {
     mailDesc: AdminUserInvitationMailDescription,
   ) {
     try {
+      if (process.env.MAIL_API) {
+        const apiRes = await axios.post(process.env.MAIL_API, {
+          to,
+          template: mailDesc.template,
+          subject: this.resolveSubjectForMailDesc(mailDesc),
+          context: mailDesc.variables,
+        });
+        return apiRes;
+      }
       const res = await this.nestMailerService.sendMail({
         to,
         template: mailDesc.template,
