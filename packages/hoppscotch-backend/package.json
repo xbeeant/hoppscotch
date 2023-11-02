@@ -60,6 +60,7 @@
     "prisma": "^4.16.2",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
+    "axios": "^0.21.4",
     "rxjs": "^7.6.0"
   },
   "devDependencies": {
