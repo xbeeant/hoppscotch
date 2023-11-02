@@ -7,7 +7,7 @@ import {
 import { throwErr } from 'src/utils';
 import { EMAIL_FAILED } from 'src/errors';
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
-import axios from "axios";
+import axios from 'axios';
 
 @Injectable()
 export class MailerService {
