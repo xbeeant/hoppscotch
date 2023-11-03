@@ -8,7 +8,7 @@
       <div class="flex items-center space-x-4">
         <button
           class="p-2 rounded-3xl bg-divider hover:bg-dividerDark transition flex justify-center items-center"
-          @click="router.push('/teams')"
+          @click="router.push('/hoppscotch/teams')"
         >
           <icon-lucide-arrow-left class="text-xl" />
         </button>
@@ -168,7 +168,7 @@ const deleteTeamMutation = async (id: string | null) => {
   });
   confirmDeletion.value = false;
   deleteTeamUID.value = null;
-  router.push('/teams');
+  router.push('/hoppscotch/teams');
 };
 
 // Update Roles of Members

@@ -4,7 +4,7 @@
     <div>
       <button
         class="p-2 mb-2 rounded-3xl bg-divider"
-        @click="router.push('/users')"
+        @click="router.push('/hoppscotch/users')"
       >
         <icon-lucide-arrow-left class="text-xl" />
       </button>
@@ -210,7 +210,7 @@ const deleteUserMutation = async (id: string | null) => {
   });
   confirmDeletion.value = false;
   deleteUserUID.value = null;
-  router.push('/users');
+  router.push('/hoppscotch/users');
 };
 
 // Make User Admin

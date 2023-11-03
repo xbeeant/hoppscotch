@@ -144,7 +144,7 @@ const createTeam = async (newTeamName: string, ownerEmail: string) => {
 // Go To Individual Team Details Page
 const router = useRouter();
 const goToTeamDetails = (teamId: string) => {
-  router.push('/teams/' + teamId);
+  router.push('/hoppscotch/teams/' + teamId);
 };
 
 // Reload Teams Page when routed back to the teams page
@@ -181,6 +181,6 @@ const deleteTeamMutation = async (id: string | null) => {
   });
   confirmDeletion.value = false;
   deleteTeamID.value = null;
-  router.push('/teams');
+  router.push('/hoppscotch/teams');
 };
 </script>

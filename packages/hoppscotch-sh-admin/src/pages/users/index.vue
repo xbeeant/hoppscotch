@@ -142,7 +142,7 @@ const sendInvite = async (email: string) => {
 const route = useRoute();
 const router = useRouter();
 const goToUserDetails = (uid: string) => {
-  router.push('/users/' + uid);
+  router.push('/hoppscotch/users/' + uid);
 };
 
 watch(

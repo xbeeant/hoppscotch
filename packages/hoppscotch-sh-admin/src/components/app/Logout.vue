@@ -50,7 +50,7 @@ const toast = useToast();
 const logout = async () => {
   try {
     await auth.signOutUser();
-    router.push(`/`);
+    router.push(`/hoppscotch/`);
     toast.success(`${t('state.logged_out')}`);
   } catch (e) {
     console.error(e);

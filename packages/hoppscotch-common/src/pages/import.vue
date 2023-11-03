@@ -73,7 +73,7 @@ onMounted(async () => {
 
   pipe(result, E.fold(handleImportFailure, handleImportSuccess))
 
-  router.replace("/")
+  router.replace("/hoppscotch/")
 })
 
 const IMPORT_ERROR_MAP: Record<ImportCollectionsError, string> = {

@@ -152,7 +152,9 @@ export default <HoppModule>{
     if (oldLocalePathLangCode) {
       changeAppLanguage(oldLocalePathLangCode)
 
-      router.replace(to.path.substring(`/${oldLocalePathLangCode}`.length))
+      router.replace(
+        to.path.substring(`/hoppscotch/${oldLocalePathLangCode}`.length)
+      )
     }
   },
 }

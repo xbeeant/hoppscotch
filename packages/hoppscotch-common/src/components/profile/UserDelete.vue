@@ -164,7 +164,7 @@ const deleteUserAccount = async () => {
         showDeleteAccountModal.value = false
         toast.success(t("settings.account_deleted"))
         platform.auth.signOutUser()
-        router.push(`/`)
+        router.push(`/hoppscotch/`)
       }
     )
   )()

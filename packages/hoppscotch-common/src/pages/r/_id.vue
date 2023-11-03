@@ -135,7 +135,7 @@ const addRequestToTab = () => {
       isDirty: false,
     })
 
-    router.push({ path: "/" })
+    router.push({ path: "/hoppscotch/" })
   }
 }
 

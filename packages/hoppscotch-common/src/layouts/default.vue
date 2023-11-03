@@ -144,23 +144,23 @@ defineActionHandler("modals.support.toggle", () => {
 })
 
 defineActionHandler("navigation.jump.rest", () => {
-  router.push({ path: "/" })
+  router.push({ path: "/hoppscotch/" })
 })
 
 defineActionHandler("navigation.jump.graphql", () => {
-  router.push({ path: "/graphql" })
+  router.push({ path: "/hoppscotch/graphql" })
 })
 
 defineActionHandler("navigation.jump.realtime", () => {
-  router.push({ path: "/realtime" })
+  router.push({ path: "/hoppscotch/realtime" })
 })
 
 defineActionHandler("navigation.jump.settings", () => {
-  router.push({ path: "/settings" })
+  router.push({ path: "/hoppscotch/settings" })
 })
 
 defineActionHandler("navigation.jump.profile", () => {
-  router.push({ path: "/profile" })
+  router.push({ path: "/hoppscotch/profile" })
 })
 
 defineActionHandler("settings.theme.system", () => {

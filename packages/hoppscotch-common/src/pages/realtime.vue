@@ -54,7 +54,7 @@ usePageHead({
 
 // Update the router when the tab is updated
 watch(currentTab, (newTab) => {
-  router.push(`/realtime/${newTab}`)
+  router.push(`/hoppscotch/realtime/${newTab}`)
 })
 
 // Update the tab when router is upgrad
@@ -64,7 +64,7 @@ watch(
     const path = updateRoute.path
 
     if (updateRoute.name?.toString() === "realtime") {
-      router.replace(`/realtime/websocket`)
+      router.replace(`/hoppscotch/realtime/websocket`)
       return
     }
 
