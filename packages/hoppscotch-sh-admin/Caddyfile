@@ -1,5 +1,5 @@
 :8080 {
-  try_files {path} /
+  try_files {path} /hoppscotch
   root * /site
   file_server
 }

@@ -17,5 +17,6 @@ FROM caddy:2-alpine
 WORKDIR /site
 COPY packages/hoppscotch-selfhost-web/Caddyfile /etc/caddy/Caddyfile
 COPY --from=builder /usr/src/app/packages/hoppscotch-selfhost-web/dist/ .
+COPY --from=builder /usr/src/app/packages/hoppscotch-selfhost-web/dist/ ./hoppscotch
 
 EXPOSE 8080

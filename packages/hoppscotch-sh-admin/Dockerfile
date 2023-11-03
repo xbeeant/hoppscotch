@@ -17,5 +17,5 @@ FROM caddy:2-alpine
 WORKDIR /site
 COPY packages/hoppscotch-sh-admin/Caddyfile /etc/caddy/Caddyfile
 COPY --from=builder /usr/src/app/packages/hoppscotch-sh-admin/dist/ .
-
+COPY --from=builder /usr/src/app/packages/hoppscotch-sh-admin/dist/ ./hoppscotch
 EXPOSE 8080
