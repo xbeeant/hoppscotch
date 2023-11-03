@@ -38,6 +38,12 @@
               :value="member.email"
               readonly
             />
+            <input
+              class="flex flex-1 px-4 py-3 bg-transparent"
+              placeholder="displayName"
+              :value="member.displayName"
+              readonly
+            />
             <span>
               <tippy
                 interactive
@@ -269,6 +275,7 @@ const membersList = computed(() => {
     return {
       userID: member.user.uid,
       email: member.user.email!,
+      displayName: member.user.displayName,
       role: updatedRole?.role ?? member.role,
     };
   });
