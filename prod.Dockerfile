@@ -58,6 +58,10 @@ RUN apk add caddy tini
 RUN npm install -g @import-meta-env/cli
 COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/dist /site/selfhost-web
 COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/dist /site/sh-admin
+
+COPY --from=fe_builder /usr/src/app/packages/hoppscotch-selfhost-web/dist /site/selfhost-web/hoppscotch/
+COPY --from=sh_admin_builder /usr/src/app/packages/hoppscotch-sh-admin/dist /site/sh-admin/hoppscotch/
+
 COPY aio.Caddyfile /etc/caddy/Caddyfile
 ENTRYPOINT [ "tini", "--" ]
 RUN apk --no-cache add curl

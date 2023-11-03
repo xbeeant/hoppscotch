@@ -29,6 +29,7 @@ export default defineConfig({
     // For 'util' polyfill required by dep of '@apidevtools/swagger-parser'
     "process.env": {},
   },
+  base: "/hoppscotch/",
   server: {
     port: 3000,
   },
