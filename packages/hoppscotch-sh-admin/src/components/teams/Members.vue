@@ -15,15 +15,17 @@
           v-if="team?.teamMembers?.length === 0"
           text="No members in this team. Add members to this team to collaborate"
         >
-          <HoppButtonSecondary
-            :icon="IconUserPlus"
-            :label="t('teams.add_members')"
-            @click="
-              () => {
-                showInvite = !showInvite;
-              }
-            "
-          />
+          <template #body>
+            <HoppButtonSecondary
+              :icon="IconUserPlus"
+              :label="t('teams.add_members')"
+              @click="
+                () => {
+                  showInvite = !showInvite;
+                }
+              "
+            />
+          </template>
         </HoppSmartPlaceholder>
         <div v-else class="divide-y divide-dividerLight">
           <div
@@ -193,7 +195,7 @@ const emit = defineEmits<{
 const showInvite = ref(false);
 
 // Get Team Details
-const team = ref<TeamInfoQuery['admin']['teamInfo'] | undefined>();
+const team = ref<TeamInfoQuery['infra']['teamInfo'] | undefined>();
 const fetching = ref(true);
 const route = useRoute();
 const { client } = useClientHandle();
@@ -207,8 +209,8 @@ const getTeamInfo = async () => {
   if (result.error) {
     return toast.error(`${t('teams.load_info_error')}`);
   }
-  if (result.data?.admin.teamInfo) {
-    team.value = result.data.admin.teamInfo;
+  if (result.data?.infra.teamInfo) {
+    team.value = result.data.infra.teamInfo;
   }
   fetching.value = false;
 };
