@@ -133,9 +133,7 @@ export class ExtensionInterceptorService
 
   public selectable = { type: "selectable" as const }
 
-  constructor() {
-    super()
-
+  override onServiceInit() {
     this.listenForExtensionStatus()
   }
 
@@ -231,6 +229,7 @@ export class ExtensionInterceptorService
     try {
       const result = await extensionHook.sendRequest({
         ...req,
+        headers: req.headers ?? {},
         wantsBinary: true,
       })
 

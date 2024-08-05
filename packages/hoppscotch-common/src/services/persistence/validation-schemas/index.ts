@@ -48,23 +48,27 @@ const SettingsDefSchema = z.object({
 
   WRAP_LINES: z.optional(
     z.object({
-      httpRequestBody: z.boolean(),
-      httpResponseBody: z.boolean(),
-      httpHeaders: z.boolean(),
-      httpParams: z.boolean(),
-      httpUrlEncoded: z.boolean(),
-      httpPreRequest: z.boolean(),
-      httpTest: z.boolean(),
-      graphqlQuery: z.boolean(),
-      graphqlResponseBody: z.boolean(),
-      graphqlHeaders: z.boolean(),
-      graphqlVariables: z.boolean(),
-      graphqlSchema: z.boolean(),
-      importCurl: z.boolean(),
-      codeGen: z.boolean(),
-      cookie: z.boolean(),
+      httpRequestBody: z.boolean().catch(true),
+      httpResponseBody: z.boolean().catch(true),
+      httpHeaders: z.boolean().catch(true),
+      httpParams: z.boolean().catch(true),
+      httpUrlEncoded: z.boolean().catch(true),
+      httpPreRequest: z.boolean().catch(true),
+      httpTest: z.boolean().catch(true),
+      httpRequestVariables: z.boolean().catch(true),
+      graphqlQuery: z.boolean().catch(true),
+      graphqlResponseBody: z.boolean().catch(true),
+      graphqlHeaders: z.boolean().catch(false),
+      graphqlVariables: z.boolean().catch(false),
+      graphqlSchema: z.boolean().catch(true),
+      importCurl: z.boolean().catch(true),
+      codeGen: z.boolean().catch(true),
+      cookie: z.boolean().catch(true),
     })
   ),
+
+  HAS_OPENED_SPOTLIGHT: z.optional(z.boolean()),
+  ENABLE_AI_EXPERIMENTS: z.optional(z.boolean()),
 })
 
 // Common properties shared across REST & GQL collections
@@ -273,7 +277,8 @@ const HoppGQLSaveContextSchema = z.nullable(
       .object({
         originLocation: z.literal("user-collection"),
         folderPath: z.string(),
-        requestIndex: z.number(),
+        // TODO: Investigate why this field is not populated at times
+        requestIndex: z.optional(z.number()),
       })
       .strict(),
     z
@@ -397,7 +402,7 @@ const HoppTestResultSchema = z
                 (x) => "secret" in x && !x.secret
               ).and(
                 z.object({
-                  previousValue: z.string(),
+                  previousValue: z.optional(z.string()),
                 })
               )
             ),
@@ -412,7 +417,7 @@ const HoppTestResultSchema = z
                 (x) => "secret" in x && !x.secret
               ).and(
                 z.object({
-                  previousValue: z.string(),
+                  previousValue: z.optional(z.string()),
                 })
               )
             ),
@@ -514,6 +519,7 @@ const validRestOperations = [
   "authorization",
   "preRequestScript",
   "tests",
+  "requestVariables",
 ] as const
 
 export const REST_TAB_STATE_SCHEMA = z

@@ -16,15 +16,18 @@
     {{ t('configs.load_error') }}
   </div>
 
-    <div v-else class="flex flex-col py-8">
-      <HoppSmartTabs v-model="selectedOptionTab" render-inactive-tabs>
-        <HoppSmartTab :id="'config'" :label="t('configs.title')">
-          <SettingsConfigurations
-            v-model:config="workingConfigs"
-            class="py-8 px-4"
-          />
-        </HoppSmartTab>
-      </HoppSmartTabs>
+  <div v-else-if="workingConfigs" class="flex flex-col py-8">
+    <HoppSmartTabs v-model="selectedOptionTab" render-inactive-tabs>
+      <HoppSmartTab :id="'config'" :label="t('configs.title')">
+        <SettingsConfigurations
+          v-model:config="workingConfigs"
+          class="py-8 px-4"
+        />
+      </HoppSmartTab>
+      <HoppSmartTab :id="'token'" :label="t('infra_tokens.tab_title')">
+        <Tokens />
+      </HoppSmartTab>
+    </HoppSmartTabs>
   </div>
 
   <div v-if="isConfigUpdated" class="fixed bottom-0 right-0 m-10">
@@ -37,13 +40,14 @@
   <SettingsServerRestart
     v-if="initiateServerRestart"
     :workingConfigs="workingConfigs"
+    @mutation-failure="initiateServerRestart = false"
   />
 
   <HoppSmartConfirmModal
     :show="showSaveChangesModal"
     :title="t('configs.confirm_changes')"
     @hide-modal="showSaveChangesModal = false"
-    @resolve="initiateServerRestart = true"
+    @resolve="restartServer"
   />
 </template>
 
@@ -51,15 +55,17 @@
 import { isEqual } from 'lodash-es';
 import { computed, ref } from 'vue';
 import { useI18n } from '~/composables/i18n';
+import { useToast } from '~/composables/toast';
 import { useConfigHandler } from '~/composables/useConfigHandler';
 
 const t = useI18n();
+const toast = useToast();
 
 const showSaveChangesModal = ref(false);
 const initiateServerRestart = ref(false);
 
 // Tabs
-type OptionTabs = 'config';
+type OptionTabs = 'config' | 'token';
 const selectedOptionTab = ref<OptionTabs>('config');
 
 // Obtain the current and working configs from the useConfigHandler composable
@@ -70,6 +76,7 @@ const {
   infraConfigsError,
   fetchingAllowedAuthProviders,
   allowedAuthProvidersError,
+  AreAnyConfigFieldsEmpty,
 } = useConfigHandler();
 
 // Check if the configs have been updated
@@ -78,4 +85,17 @@ const isConfigUpdated = computed(() =>
     ? !isEqual(currentConfigs.value, workingConfigs.value)
     : false
 );
+
+// Check if any of the fields in workingConfigs are empty
+const areAnyFieldsEmpty = computed(() =>
+  workingConfigs.value ? AreAnyConfigFieldsEmpty(workingConfigs.value) : false
+);
+
+const restartServer = () => {
+  if (areAnyFieldsEmpty.value) {
+    return toast.error(t('configs.input_empty'));
+  }
+  initiateServerRestart.value = true;
+  showSaveChangesModal.value = false;
+};
 </script>

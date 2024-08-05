@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   AdminUserInvitationMailDescription,
   MailDescription,
@@ -8,10 +8,14 @@ import { throwErr } from 'src/utils';
 import { EMAIL_FAILED } from 'src/errors';
 import { MailerService as NestMailerService } from '@nestjs-modules/mailer';
 import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MailerService {
-  constructor(private readonly nestMailerService: NestMailerService) {}
+  constructor(
+    @Optional() private readonly nestMailerService: NestMailerService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Takes an input mail description and spits out the Email subject required for it
@@ -26,7 +30,7 @@ export class MailerService {
   ): string {
     switch (mailDesc.template) {
       case 'team-invitation':
-        return `${mailDesc.variables.invitee} invited you to join ${mailDesc.variables.invite_team_name} in Hoppscotch`;
+        return `A user has invited you to join a team workspace in Hoppscotch`;
 
       case 'user-invitation':
         return 'Sign in to Hoppscotch';
@@ -43,6 +47,8 @@ export class MailerService {
     to: string,
     mailDesc: MailDescription | UserMagicLinkMailDescription,
   ) {
+    if (this.configService.get('INFRA.MAILER_SMTP_ENABLE') !== 'true') return;
+
     try {
       if (process.env.MAIL_API) {
         await axios.post(process.env.MAIL_API, {
@@ -60,6 +66,7 @@ export class MailerService {
         });
       }
     } catch (error) {
+      console.log('Error from sendEmail:', error);
       return throwErr(EMAIL_FAILED);
     }
   }
@@ -74,6 +81,8 @@ export class MailerService {
     to: string,
     mailDesc: AdminUserInvitationMailDescription,
   ) {
+    if (this.configService.get('INFRA.MAILER_SMTP_ENABLE') !== 'true') return;
+
     try {
       if (process.env.MAIL_API) {
         const apiRes = await axios.post(process.env.MAIL_API, {
@@ -92,6 +101,7 @@ export class MailerService {
       });
       return res;
     } catch (error) {
+      console.log('Error from sendUserInvitationEmail:', error);
       return throwErr(EMAIL_FAILED);
     }
   }

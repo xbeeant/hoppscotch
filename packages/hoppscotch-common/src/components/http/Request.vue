@@ -54,8 +54,9 @@
       >
         <SmartEnvInput
           v-model="tab.document.request.endpoint"
-          :placeholder="`${t('request.url')}`"
+          :placeholder="`${t('request.url_placeholder')}`"
           :auto-complete-source="userHistories"
+          :auto-complete-env="true"
           :inspection-results="tabResults"
           @paste="onPasteUrl($event)"
           @enter="newSendRequest"

@@ -3,7 +3,7 @@
     <div class="flex flex-col">
       <div class="flex flex-col">
         <HoppSmartItem
-          label="My Workspace"
+          :label="t('workspace.personal')"
           :icon="IconUser"
           :info-icon="workspace.type === 'personal' ? IconDone : undefined"
           :active-info-icon="workspace.type === 'personal'"
@@ -36,7 +36,7 @@
           class="sticky top-0 z-10 mb-2 flex items-center justify-between bg-popover py-2 pl-2"
         >
           <div class="flex items-center px-2 font-semibold text-secondaryLight">
-            {{ t("team.title") }}
+            {{ t("workspace.other_workspaces") }}
           </div>
           <HoppButtonSecondary
             v-tippy="{ theme: 'tooltip' }"
@@ -59,14 +59,18 @@
         />
       </div>
       <div
-        v-if="!loading && teamListAdapterError"
+        v-else-if="teamListAdapterError"
         class="flex flex-col items-center py-4"
       >
         <icon-lucide-help-circle class="svg-icons mb-4" />
         {{ t("error.something_went_wrong") }}
       </div>
     </div>
-    <TeamsAdd :show="showModalAdd" @hide-modal="displayModalAdd(false)" />
+    <TeamsAdd
+      :show="showModalAdd"
+      :switch-workspace-after-creation="true"
+      @hide-modal="displayModalAdd(false)"
+    />
   </div>
 </template>
 <script setup lang="ts">
@@ -81,7 +85,7 @@ import { useColorMode } from "@composables/theming"
 import { GetMyTeamsQuery } from "~/helpers/backend/graphql"
 import IconDone from "~icons/lucide/check"
 import { useLocalState } from "~/newstore/localstate"
-import { defineActionHandler } from "~/helpers/actions"
+import { defineActionHandler, invokeAction } from "~/helpers/actions"
 import { WorkspaceService } from "~/services/workspace.service"
 import { useService } from "dioc/vue"
 import { useElementVisibility, useIntervalFn } from "@vueuse/core"
@@ -154,6 +158,7 @@ const switchToTeamWorkspace = (team: GetMyTeamsQuery["myTeams"][number]) => {
     teamID: team.id,
     teamName: team.name,
     type: "team",
+    role: team.myRole,
   })
 }
 
@@ -169,11 +174,14 @@ watch(
   (user) => {
     if (!user) {
       switchToPersonalWorkspace()
+      teamListadapter.dispose()
     }
   }
 )
 
 const displayModalAdd = (shouldDisplay: boolean) => {
+  if (!currentUser.value) return invokeAction("modals.login.toggle")
+
   showModalAdd.value = shouldDisplay
   teamListadapter.fetchList()
 }

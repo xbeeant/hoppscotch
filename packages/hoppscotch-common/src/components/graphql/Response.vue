@@ -72,7 +72,9 @@
           </tippy>
         </div>
       </div>
-      <div ref="schemaEditor" class="flex flex-1 flex-col"></div>
+      <div class="h-full relative overflow-auto flex flex-col flex-1">
+        <div ref="schemaEditor" class="absolute inset-0 h-full"></div>
+      </div>
     </div>
     <component
       :is="response[0].error.component"
@@ -181,9 +183,3 @@ defineActionHandler(
   computed(() => !!props.response && props.response.length > 0)
 )
 </script>
-
-<style lang="scss" scoped>
-:deep(.cm-panels) {
-  @apply top-sidebarPrimaryStickyFold #{!important};
-}
-</style>

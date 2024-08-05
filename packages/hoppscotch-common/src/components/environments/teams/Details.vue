@@ -56,9 +56,7 @@
               :key="tab.id"
               :label="tab.label"
             >
-              <div
-                class="divide-y divide-dividerLight rounded border border-divider"
-              >
+              <div class="divide-y divide-dividerLight">
                 <HoppSmartPlaceholder
                   v-if="tab.variables.length === 0"
                   :src="`/images/states/${colorMode.value}/blockchain.svg`"
@@ -360,7 +358,7 @@ const saveEnvironment = async () => {
     return
   }
 
-  const filterdVariables = pipe(
+  const filteredVariables = pipe(
     vars.value,
     A.filterMap(
       flow(
@@ -371,17 +369,15 @@ const saveEnvironment = async () => {
   )
 
   const secretVariables = pipe(
-    filterdVariables,
+    filteredVariables,
     A.filterMapWithIndex((i, e) =>
       e.secret ? O.some({ key: e.key, value: e.value, varIndex: i }) : O.none
     )
   )
 
   const variables = pipe(
-    filterdVariables,
-    A.map((e) =>
-      e.secret ? { key: e.key, secret: e.secret, value: undefined } : e
-    )
+    filteredVariables,
+    A.map((e) => (e.secret ? { key: e.key, secret: e.secret } : e))
   )
 
   const environmentUpdated: Environment = {

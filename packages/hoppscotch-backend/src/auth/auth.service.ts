@@ -24,7 +24,7 @@ import {
   RefreshTokenPayload,
 } from 'src/types/AuthTokens';
 import { JwtService } from '@nestjs/jwt';
-import { AuthError } from 'src/types/AuthError';
+import { RESTError } from 'src/types/RESTError';
 import { AuthUser, IsAdmin } from 'src/types/AuthUser';
 import { VerificationToken } from '@prisma/client';
 import { Origin } from './helper';
@@ -112,12 +112,12 @@ export class AuthService {
 
     const refreshTokenHash = await argon2.hash(refreshToken);
 
-    const updatedUser = await this.usersService.UpdateUserRefreshToken(
+    const updatedUser = await this.usersService.updateUserRefreshToken(
       refreshTokenHash,
       userUid,
     );
     if (E.isLeft(updatedUser))
-      return E.left(<AuthError>{
+      return E.left(<RESTError>{
         message: updatedUser.left,
         statusCode: HttpStatus.NOT_FOUND,
       });
@@ -255,7 +255,7 @@ export class AuthService {
    */
   async verifyMagicLinkTokens(
     magicLinkIDTokens: VerifyMagicDto,
-  ): Promise<E.Right<AuthTokens> | E.Left<AuthError>> {
+  ): Promise<E.Right<AuthTokens> | E.Left<RESTError>> {
     const passwordlessTokens = await this.validatePasswordlessTokens(
       magicLinkIDTokens,
     );
@@ -320,6 +320,8 @@ export class AuthService {
         statusCode: HttpStatus.NOT_FOUND,
       });
 
+    this.usersService.updateUserLastLoggedOn(passwordlessTokens.value.userUid);
+
     return E.right(tokens.right);
   }
 
@@ -373,7 +375,7 @@ export class AuthService {
     if (usersCount === 1) {
       const elevatedUser = await this.usersService.makeAdmin(user.uid);
       if (E.isLeft(elevatedUser))
-        return E.left(<AuthError>{
+        return E.left(<RESTError>{
           message: elevatedUser.left,
           statusCode: HttpStatus.NOT_FOUND,
         });

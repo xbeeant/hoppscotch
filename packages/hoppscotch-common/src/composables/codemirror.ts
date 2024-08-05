@@ -11,6 +11,7 @@ import {
   EditorState,
   Compartment,
   EditorSelection,
+  Prec,
 } from "@codemirror/state"
 import {
   Language,
@@ -68,6 +69,9 @@ type CodeMirrorOptions = {
 
   // callback on editor update
   onUpdate?: (view: ViewUpdate) => void
+
+  // callback on view initialization
+  onInit?: (view: EditorView) => void
 }
 
 const hoppCompleterExt = (completer: Completer): Extension => {
@@ -208,7 +212,9 @@ export function useCodemirror(
   el: Ref<any | null>,
   value: Ref<string | undefined>,
   options: CodeMirrorOptions
-): { cursor: Ref<{ line: number; ch: number }> } {
+): {
+  cursor: Ref<{ line: number; ch: number }>
+} {
   const { subscribeToStream } = useStreamSubscriber()
 
   // Set default value for contextMenuEnabled if not provided
@@ -242,8 +248,10 @@ export function useCodemirror(
       const { from, to } = selection
       if (from === to) return
       const text = view.value?.state.doc.sliceString(from, to)
-      const { top, left } = view.value?.coordsAtPos(from)
-      if (text) {
+      const coords = view.value?.coordsAtPos(from)
+      const top = coords?.top ?? 0
+      const left = coords?.left ?? 0
+      if (text?.trim()) {
         invokeAction("contextmenu.open", {
           position: {
             top,
@@ -263,6 +271,12 @@ export function useCodemirror(
     }
   }
 
+  // Debounce to prevent double click from selecting the word
+  const debouncedTextSelection = (time: number) =>
+    useDebounceFn(() => {
+      handleTextSelection()
+    }, time)
+
   const initView = (el: any) => {
     if (el) platform.ui?.onCodemirrorInstanceMount?.(el)
 
@@ -274,34 +288,22 @@ export function useCodemirror(
       ViewPlugin.fromClass(
         class {
           update(update: ViewUpdate) {
-            // Debounce to prevent double click from selecting the word
-            const debounceFn = useDebounceFn(() => {
-              handleTextSelection()
-            }, 140)
-
             // Only add event listeners if context menu is enabled in the editor
             if (options.contextMenuEnabled) {
-              el.addEventListener("mouseup", debounceFn)
-              el.addEventListener("keyup", debounceFn)
+              el.addEventListener("mouseup", debouncedTextSelection(140))
+              el.addEventListener("keyup", debouncedTextSelection(140))
             }
 
             if (options.onUpdate) {
               options.onUpdate(update)
             }
 
-            if (update.selectionSet) {
-              const cursorPos = update.state.selection.main.head
-              const line = update.state.doc.lineAt(cursorPos)
+            const cursorPos = update.state.selection.main.head
+            const line = update.state.doc.lineAt(cursorPos)
 
-              cachedCursor.value = {
-                line: line.number - 1,
-                ch: cursorPos - line.from,
-              }
-
-              cursor.value = {
-                line: cachedCursor.value.line,
-                ch: cachedCursor.value.ch,
-              }
+            cachedCursor.value = {
+              line: line.number - 1,
+              ch: cursorPos - line.from,
             }
 
             cursor.value = {
@@ -322,9 +324,13 @@ export function useCodemirror(
       ),
 
       EditorView.domEventHandlers({
-        scroll(event) {
+        scroll(event, view) {
+          // HACK: This is a workaround to fix the issue in CodeMirror where the content doesn't load when the editor is not in view.
+          view.requestMeasure()
+
           if (event.target && options.contextMenuEnabled) {
-            handleTextSelection()
+            // Debounce to make the performance better
+            debouncedTextSelection(30)()
           }
         },
       }),
@@ -362,6 +368,15 @@ export function useCodemirror(
           run: indentLess,
         },
       ]),
+      Prec.highest(
+        keymap.of([
+          {
+            key: "Cmd-Enter" /* macOS */ || "Ctrl-Enter" /* Windows */,
+            preventDefault: true,
+            run: () => true,
+          },
+        ])
+      ),
       tooltips({
         parent: document.body,
         position: "absolute",
@@ -379,6 +394,8 @@ export function useCodemirror(
         extensions,
       }),
     })
+
+    options.onInit?.(view.value)
   }
 
   onMounted(() => {

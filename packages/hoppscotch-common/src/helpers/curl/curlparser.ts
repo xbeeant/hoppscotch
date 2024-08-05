@@ -33,7 +33,27 @@ export const parseCurlCommand = (curlCommand: string) => {
   // const compressed = !!parsedArguments.compressed
 
   curlCommand = preProcessCurlCommand(curlCommand)
-  const parsedArguments = parser(curlCommand)
+
+  const args: parser.Arguments = parser(curlCommand)
+
+  const parsedArguments = pipe(
+    args,
+    O.fromPredicate(
+      (args) =>
+        objHasProperty("dataUrlencode", "string")(args) ||
+        objHasProperty("dataUrlencode", "object")(args)
+    ),
+    O.map((args) => {
+      const urlEncodedData: string[] = Array.isArray(args.dataUrlencode)
+        ? args.dataUrlencode
+        : [args.dataUrlencode]
+
+      const data = A.map(decodeURIComponent)(urlEncodedData)
+
+      return { ...args, d: data }
+    }),
+    O.getOrElse(() => args)
+  )
 
   const headerObject = getHeaders(parsedArguments)
   const { headers } = headerObject
@@ -106,7 +126,7 @@ export const parseCurlCommand = (curlCommand: string) => {
     hasBodyBeenParsed = true
   }
 
-  const urlString = concatParams(urlObject, danglingParams)
+  const urlString = decodeURIComponent(concatParams(urlObject, danglingParams))
 
   let multipartUploads: Record<string, string> = pipe(
     O.of(parsedArguments),
@@ -181,5 +201,6 @@ export const parseCurlCommand = (curlCommand: string) => {
     testScript: defaultRESTReq.testScript,
     auth,
     body: finalBody,
+    requestVariables: defaultRESTReq.requestVariables,
   })
 }

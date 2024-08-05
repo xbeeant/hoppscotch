@@ -71,6 +71,13 @@
                   collection: node.data.data.data,
                 })
             "
+            @duplicate-collection="
+              node.data.type === 'collections' &&
+                emit('duplicate-collection', {
+                  pathOrID: node.id,
+                  collectionSyncID: node.data.data.data.id,
+                })
+            "
             @edit-properties="
               node.data.type === 'collections' &&
                 emit('edit-properties', {
@@ -144,6 +151,13 @@
                 emit('edit-folder', {
                   folderPath: node.id,
                   folder: node.data.data.data,
+                })
+            "
+            @duplicate-collection="
+              node.data.type === 'folders' &&
+                emit('duplicate-collection', {
+                  pathOrID: node.id,
+                  collectionSyncID: node.data.data.data.id,
                 })
             "
             @edit-properties="
@@ -448,6 +462,13 @@ const emit = defineEmits<{
     }
   ): void
   (
+    event: "duplicate-collection",
+    payload: {
+      pathOrID: string
+      collectionSyncID?: string
+    }
+  ): void
+  (
     event: "edit-properties",
     payload: {
       collectionIndex: string
@@ -694,7 +715,7 @@ class MyCollectionsAdapter implements SmartTreeAdapter<MyCollectionNode> {
     let target = collections[indexPaths.shift() as number]
 
     while (indexPaths.length > 0)
-      target = target.folders[indexPaths.shift() as number]
+      target = target?.folders[indexPaths.shift() as number]
 
     return target !== undefined ? target : null
   }

@@ -4,19 +4,21 @@ import { EnvironmentsPlatformDef } from "./environments"
 import { CollectionsPlatformDef } from "./collections"
 import { SettingsPlatformDef } from "./settings"
 import { HistoryPlatformDef } from "./history"
-import { TabStatePlatformDef } from "./tab"
 import { AnalyticsPlatformDef } from "./analytics"
 import { InterceptorsPlatformDef } from "./interceptors"
 import { HoppModule } from "~/modules"
 import { InspectorsPlatformDef } from "./inspectors"
-import { Service } from "dioc"
+import { ServiceClassInstance } from "dioc"
 import { IOPlatformDef } from "./io"
 import { SpotlightPlatformDef } from "./spotlight"
+import { InfraPlatformDef } from "./infra"
+import { ExperimentsPlatformDef } from "./experiments"
+import { Ref } from "vue"
 
 export type PlatformDef = {
   ui?: UIPlatformDef
   addedHoppModules?: HoppModule[]
-  addedServices?: Array<typeof Service<unknown> & { ID: string }>
+  addedServices?: Array<ServiceClassInstance<unknown>>
   auth: AuthPlatformDef
   analytics?: AnalyticsPlatformDef
   io: IOPlatformDef
@@ -25,7 +27,6 @@ export type PlatformDef = {
     collections: CollectionsPlatformDef
     settings: SettingsPlatformDef
     history: HistoryPlatformDef
-    tabState: TabStatePlatformDef
   }
   interceptors: InterceptorsPlatformDef
   additionalInspectors?: InspectorsPlatformDef
@@ -47,7 +48,20 @@ export type PlatformDef = {
      * If a value is not given, then the value is assumed to be true
      */
     promptAsUsingCookies?: boolean
+
+    /**
+     * Whether to show the A/B testing workspace switcher click login flow or not
+     */
+    workspaceSwitcherLogin?: Ref<boolean>
+
+    /**
+     * There's an active issue wrt syncing in personal workspace under SH while duplicating a collection
+     * This is a temporary flag to disable the same
+     */
+    duplicateCollectionDisabledInPersonalWorkspace?: boolean
   }
+  infra?: InfraPlatformDef
+  experiments?: ExperimentsPlatformDef
 }
 
 export let platform: PlatformDef

@@ -119,11 +119,9 @@
         />
       </div>
     </div>
-    <div
-      ref="jsonResponse"
-      class="flex h-auto h-full flex-1 flex-col"
-      :class="toggleFilter ? 'responseToggleOn' : 'responseToggleOff'"
-    ></div>
+    <div class="h-full relative overflow-auto flex flex-col flex-1">
+      <div ref="jsonResponse" class="absolute inset-0 h-full"></div>
+    </div>
     <div
       v-if="outlinePath"
       class="sticky bottom-0 z-10 flex flex-shrink-0 flex-nowrap overflow-auto overflow-x-auto border-t border-dividerLight bg-primaryLight px-2"
@@ -305,8 +303,8 @@ const jsonResponseBodyText = computed(() => {
           () =>
             JSONPath({
               path: filterQueryText.value,
-              json: parsedJSON,
-            }) as undefined,
+              json: parsedJSON as any,
+            }),
           (err): BodyParseError => ({
             type: "JSON_PATH_QUERY_FAILED",
             error: err as Error,
@@ -431,13 +429,5 @@ defineActionHandler("response.copy", () => copyResponse())
   @apply py-1;
   @apply transition;
   @apply hover:text-secondary;
-}
-
-:deep(.responseToggleOff .cm-panels) {
-  @apply top-lowerTertiaryStickyFold #{!important};
-}
-
-:deep(.responseToggleOn .cm-panels) {
-  @apply top-lowerFourthStickyFold #{!important};
 }
 </style>

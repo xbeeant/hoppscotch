@@ -1,6 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { DateTime } from 'luxon';
-import { AuthError } from 'src/types/AuthError';
 import { AuthTokens } from 'src/types/AuthTokens';
 import { Response } from 'express';
 import * as cookie from 'cookie';
@@ -23,15 +22,6 @@ export enum AuthProvider {
   GITHUB = 'GITHUB',
   MICROSOFT = 'MICROSOFT',
   EMAIL = 'EMAIL',
-}
-
-/**
- * This function allows throw to be used as an expression
- * @param errMessage Message present in the error message
- */
-export function throwHTTPErr(errorData: AuthError): never {
-  const { message, statusCode } = errorData;
-  throw new HttpException(message, statusCode);
 }
 
 /**
@@ -62,13 +52,13 @@ export const authCookieHandler = (
 
   res.cookie(AuthTokenType.ACCESS_TOKEN, authTokens.access_token, {
     httpOnly: true,
-    secure: true,
+    secure: configService.get('ALLOW_SECURE_COOKIES') === 'true',
     sameSite: 'lax',
     maxAge: accessTokenValidity,
   });
   res.cookie(AuthTokenType.REFRESH_TOKEN, authTokens.refresh_token, {
     httpOnly: true,
-    secure: true,
+    secure: configService.get('ALLOW_SECURE_COOKIES') === 'true',
     sameSite: 'lax',
     maxAge: refreshTokenValidity,
   });

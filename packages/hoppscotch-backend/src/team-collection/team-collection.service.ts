@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TeamCollection } from './team-collection.model';
 import {
@@ -14,20 +14,42 @@ import {
   TEAM_COL_SAME_NEXT_COLL,
   TEAM_COL_REORDERING_FAILED,
   TEAM_COLL_DATA_INVALID,
+  TEAM_REQ_SEARCH_FAILED,
+  TEAM_COL_SEARCH_FAILED,
+  TEAM_REQ_PARENT_TREE_GEN_FAILED,
+  TEAM_COLL_PARENT_TREE_GEN_FAILED,
+  TEAM_MEMBER_NOT_FOUND,
 } from '../errors';
 import { PubSubService } from '../pubsub/pubsub.service';
-import { isValidLength } from 'src/utils';
+import {
+  escapeSqlLikeString,
+  isValidLength,
+  transformCollectionData,
+} from 'src/utils';
 import * as E from 'fp-ts/Either';
 import * as O from 'fp-ts/Option';
-import { Prisma, TeamCollection as DBTeamCollection } from '@prisma/client';
+import {
+  Prisma,
+  TeamCollection as DBTeamCollection,
+  TeamRequest,
+} from '@prisma/client';
 import { CollectionFolder } from 'src/types/CollectionFolder';
 import { stringToJson } from 'src/utils';
+import { CollectionSearchNode } from 'src/types/CollectionSearchNode';
+import {
+  GetCollectionResponse,
+  ParentTreeQueryReturnType,
+  SearchQueryReturnType,
+} from './helper';
+import { RESTError } from 'src/types/RESTError';
+import { TeamService } from 'src/team/team.service';
 
 @Injectable()
 export class TeamCollectionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly pubsub: PubSubService,
+    private readonly teamService: TeamService,
   ) {}
 
   TITLE_LENGTH = 3;
@@ -116,11 +138,13 @@ export class TeamCollectionService {
       },
     });
 
+    const data = transformCollectionData(collection.right.data);
+
     const result: CollectionFolder = {
       name: collection.right.title,
       folders: childrenCollectionObjects,
       requests: requests.map((x) => x.request),
-      data: JSON.stringify(collection.right.data),
+      data,
     };
 
     return E.right(result);
@@ -291,11 +315,13 @@ export class TeamCollectionService {
    * @returns TeamCollection model
    */
   private cast(teamCollection: DBTeamCollection): TeamCollection {
+    const data = transformCollectionData(teamCollection.data);
+
     return <TeamCollection>{
       id: teamCollection.id,
       title: teamCollection.title,
       parentID: teamCollection.parentID,
-      data: !teamCollection.data ? null : JSON.stringify(teamCollection.data),
+      data,
     };
   }
 
@@ -1055,5 +1081,408 @@ export class TeamCollectionService {
     } catch (e) {
       return E.left(TEAM_COLL_NOT_FOUND);
     }
+  }
+
+  /**
+   * Search for TeamCollections and TeamRequests by title
+   *
+   * @param searchQuery The search query
+   * @param teamID The Team ID
+   * @param take Number of items we want returned
+   * @param skip Number of items we want to skip
+   * @returns An Either of the search results
+   */
+  async searchByTitle(
+    searchQuery: string,
+    teamID: string,
+    take = 10,
+    skip = 0,
+  ) {
+    // Fetch all collections and requests that match the search query
+    const searchResults: SearchQueryReturnType[] = [];
+
+    const matchedCollections = await this.searchCollections(
+      searchQuery,
+      teamID,
+      take,
+      skip,
+    );
+    if (E.isLeft(matchedCollections))
+      return E.left(<RESTError>{
+        message: matchedCollections.left,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    searchResults.push(...matchedCollections.right);
+
+    const matchedRequests = await this.searchRequests(
+      searchQuery,
+      teamID,
+      take,
+      skip,
+    );
+    if (E.isLeft(matchedRequests))
+      return E.left(<RESTError>{
+        message: matchedRequests.left,
+        statusCode: HttpStatus.NOT_FOUND,
+      });
+    searchResults.push(...matchedRequests.right);
+
+    // Generate the parent tree for searchResults
+    const searchResultsWithTree: CollectionSearchNode[] = [];
+
+    for (let i = 0; i < searchResults.length; i++) {
+      const fetchedParentTree = await this.fetchParentTree(searchResults[i]);
+      if (E.isLeft(fetchedParentTree))
+        return E.left(<RESTError>{
+          message: fetchedParentTree.left,
+          statusCode: HttpStatus.NOT_FOUND,
+        });
+      searchResultsWithTree.push({
+        type: searchResults[i].type,
+        title: searchResults[i].title,
+        method: searchResults[i].method,
+        id: searchResults[i].id,
+        path: !fetchedParentTree
+          ? []
+          : (fetchedParentTree.right as CollectionSearchNode[]),
+      });
+    }
+
+    return E.right({ data: searchResultsWithTree });
+  }
+
+  /**
+   * Search for TeamCollections by title
+   *
+   * @param searchQuery The search query
+   * @param teamID The Team ID
+   * @param take Number of items we want returned
+   * @param skip Number of items we want to skip
+   * @returns An Either of the search results
+   */
+  private async searchCollections(
+    searchQuery: string,
+    teamID: string,
+    take: number,
+    skip: number,
+  ) {
+    const query = Prisma.sql`
+    SELECT
+      id,title,'collection' AS type
+    FROM
+      "TeamCollection"
+    WHERE
+      "TeamCollection"."teamID"=${teamID}
+      AND
+        title ILIKE ${`%${escapeSqlLikeString(searchQuery)}%`}
+    ORDER BY
+      similarity(title, ${searchQuery})
+    LIMIT ${take}
+    OFFSET ${skip === 0 ? 0 : (skip - 1) * take};
+  `;
+
+    try {
+      const res = await this.prisma.$queryRaw<SearchQueryReturnType[]>(query);
+      return E.right(res);
+    } catch (error) {
+      return E.left(TEAM_COL_SEARCH_FAILED);
+    }
+  }
+
+  /**
+   * Search for TeamRequests by title
+   *
+   * @param searchQuery The search query
+   * @param teamID The Team ID
+   * @param take Number of items we want returned
+   * @param skip Number of items we want to skip
+   * @returns An Either of the search results
+   */
+  private async searchRequests(
+    searchQuery: string,
+    teamID: string,
+    take: number,
+    skip: number,
+  ) {
+    const query = Prisma.sql`
+    SELECT
+      id,title,request->>'method' as method,'request' AS type
+    FROM
+      "TeamRequest"
+    WHERE
+      "TeamRequest"."teamID"=${teamID}
+      AND
+        title ILIKE ${`%${escapeSqlLikeString(searchQuery)}%`}
+    ORDER BY
+      similarity(title, ${searchQuery})
+    LIMIT ${take}
+    OFFSET ${skip === 0 ? 0 : (skip - 1) * take};
+  `;
+
+    try {
+      const res = await this.prisma.$queryRaw<SearchQueryReturnType[]>(query);
+      return E.right(res);
+    } catch (error) {
+      return E.left(TEAM_REQ_SEARCH_FAILED);
+    }
+  }
+
+  /**
+   * Generate the parent tree of a search result
+   *
+   * @param searchResult The search result for which we want to generate the parent tree
+   * @returns The parent tree of the search result
+   */
+  private async fetchParentTree(searchResult: SearchQueryReturnType) {
+    return searchResult.type === 'collection'
+      ? await this.fetchCollectionParentTree(searchResult.id)
+      : await this.fetchRequestParentTree(searchResult.id);
+  }
+
+  /**
+   * Generate the parent tree of a collection
+   *
+   * @param id The ID of the collection
+   * @returns The parent tree of the collection
+   */
+  private async fetchCollectionParentTree(id: string) {
+    try {
+      const query = Prisma.sql`
+      WITH RECURSIVE collection_tree AS (
+        SELECT tc.id, tc."parentID", tc.title
+        FROM "TeamCollection" AS tc
+        JOIN "TeamCollection" AS tr ON tc.id = tr."parentID"
+        WHERE tr.id = ${id}
+
+        UNION ALL
+
+        SELECT parent.id,  parent."parentID", parent.title
+        FROM "TeamCollection" AS parent
+        JOIN collection_tree AS ct ON parent.id = ct."parentID"
+      )
+      SELECT * FROM collection_tree;
+      `;
+      const res = await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(
+        query,
+      );
+
+      const collectionParentTree = this.generateParentTree(res);
+      return E.right(collectionParentTree);
+    } catch (error) {
+      E.left(TEAM_COLL_PARENT_TREE_GEN_FAILED);
+    }
+  }
+
+  /**
+   * Generate the parent tree from the collections
+   *
+   * @param parentCollections The parent collections
+   * @returns The parent tree of the parent collections
+   */
+  private generateParentTree(parentCollections: ParentTreeQueryReturnType[]) {
+    function findChildren(id: string): CollectionSearchNode[] {
+      const collection = parentCollections.filter((item) => item.id === id)[0];
+      if (collection.parentID == null) {
+        return <CollectionSearchNode[]>[
+          {
+            id: collection.id,
+            title: collection.title,
+            type: 'collection' as const,
+            path: [],
+          },
+        ];
+      }
+
+      const res = <CollectionSearchNode[]>[
+        {
+          id: collection.id,
+          title: collection.title,
+          type: 'collection' as const,
+          path: findChildren(collection.parentID),
+        },
+      ];
+      return res;
+    }
+
+    if (parentCollections.length > 0) {
+      if (parentCollections[0].parentID == null) {
+        return <CollectionSearchNode[]>[
+          {
+            id: parentCollections[0].id,
+            title: parentCollections[0].title,
+            type: 'collection',
+            path: [],
+          },
+        ];
+      }
+
+      return <CollectionSearchNode[]>[
+        {
+          id: parentCollections[0].id,
+          title: parentCollections[0].title,
+          type: 'collection',
+          path: findChildren(parentCollections[0].parentID),
+        },
+      ];
+    }
+
+    return <CollectionSearchNode[]>[];
+  }
+
+  /**
+   * Generate the parent tree of a request
+   *
+   * @param id The ID of the request
+   * @returns The parent tree of the request
+   */
+  private async fetchRequestParentTree(id: string) {
+    try {
+      const query = Prisma.sql`
+      WITH RECURSIVE request_collection_tree AS (
+        SELECT tc.id, tc."parentID", tc.title
+        FROM "TeamCollection" AS tc
+        JOIN "TeamRequest" AS tr ON tc.id = tr."collectionID"
+        WHERE tr.id = ${id}
+
+        UNION ALL
+
+        SELECT parent.id, parent."parentID", parent.title
+        FROM "TeamCollection" AS parent
+        JOIN request_collection_tree AS ct ON parent.id = ct."parentID"
+      )
+      SELECT * FROM request_collection_tree;
+
+      `;
+      const res = await this.prisma.$queryRaw<ParentTreeQueryReturnType[]>(
+        query,
+      );
+
+      const requestParentTree = this.generateParentTree(res);
+      return E.right(requestParentTree);
+    } catch (error) {
+      return E.left(TEAM_REQ_PARENT_TREE_GEN_FAILED);
+    }
+  }
+
+  /**
+   * Get all requests in a collection
+   *
+   * @param collectionID The Collection ID
+   * @returns A list of all requests in the collection
+   */
+  private async getAllRequestsInCollection(collectionID: string) {
+    const dbTeamRequests = await this.prisma.teamRequest.findMany({
+      where: {
+        collectionID: collectionID,
+      },
+      orderBy: {
+        orderIndex: 'asc',
+      },
+    });
+
+    const teamRequests = dbTeamRequests.map((tr) => {
+      return <TeamRequest>{
+        id: tr.id,
+        collectionID: tr.collectionID,
+        teamID: tr.teamID,
+        title: tr.title,
+        request: JSON.stringify(tr.request),
+      };
+    });
+
+    return teamRequests;
+  }
+
+  /**
+   * Get Collection Tree for CLI
+   *
+   * @param parentID The parent Collection ID
+   * @returns Collection tree for CLI
+   */
+  private async getCollectionTreeForCLI(parentID: string | null) {
+    const childCollections = await this.prisma.teamCollection.findMany({
+      where: { parentID },
+      orderBy: { orderIndex: 'asc' },
+    });
+
+    const response: GetCollectionResponse[] = [];
+
+    for (const collection of childCollections) {
+      const folder: GetCollectionResponse = {
+        id: collection.id,
+        data: collection.data === null ? null : JSON.stringify(collection.data),
+        title: collection.title,
+        parentID: collection.parentID,
+        folders: await this.getCollectionTreeForCLI(collection.id),
+        requests: await this.getAllRequestsInCollection(collection.id),
+      };
+
+      response.push(folder);
+    }
+
+    return response;
+  }
+
+  /**
+   * Get Collection for CLI
+   *
+   * @param collectionID The Collection ID
+   * @param userUid The User UID
+   * @returns An Either of the Collection details
+   */
+  async getCollectionForCLI(collectionID: string, userUid: string) {
+    try {
+      const collection = await this.prisma.teamCollection.findUniqueOrThrow({
+        where: { id: collectionID },
+      });
+
+      const teamMember = await this.teamService.getTeamMember(
+        collection.teamID,
+        userUid,
+      );
+      if (!teamMember) return E.left(TEAM_MEMBER_NOT_FOUND);
+
+      return E.right(<GetCollectionResponse>{
+        id: collection.id,
+        data: collection.data === null ? null : JSON.stringify(collection.data),
+        title: collection.title,
+        parentID: collection.parentID,
+        folders: await this.getCollectionTreeForCLI(collection.id),
+        requests: await this.getAllRequestsInCollection(collection.id),
+      });
+    } catch (error) {
+      return E.left(TEAM_COLL_NOT_FOUND);
+    }
+  }
+
+  /**
+   * Duplicate a Team Collection
+   *
+   * @param collectionID The Collection ID
+   * @returns Boolean of duplication status
+   */
+  async duplicateTeamCollection(collectionID: string) {
+    const collection = await this.getCollection(collectionID);
+    if (E.isLeft(collection)) return E.left(TEAM_INVALID_COLL_ID);
+
+    const collectionJSONObject = await this.exportCollectionToJSONObject(
+      collection.right.teamID,
+      collectionID,
+    );
+    if (E.isLeft(collectionJSONObject)) return E.left(TEAM_INVALID_COLL_ID);
+
+    const result = await this.importCollectionsFromJSON(
+      JSON.stringify([
+        {
+          ...collectionJSONObject.right,
+          name: `${collection.right.title} - Duplicate`,
+        },
+      ]),
+      collection.right.teamID,
+      collection.right.parentID,
+    );
+    if (E.isLeft(result)) return E.left(result.left as string);
+
+    return E.right(true);
   }
 }

@@ -59,7 +59,9 @@
         />
       </div>
     </div>
-    <div ref="rawBodyParameters" class="flex flex-1 flex-col"></div>
+    <div class="h-full relative flex flex-col flex-1">
+      <div ref="rawBodyParameters" class="absolute inset-0"></div>
+    </div>
   </div>
 </template>
 
@@ -87,6 +89,7 @@ import { readFileAsText } from "~/helpers/functional/files"
 import xmlFormat from "xml-formatter"
 import { useNestedSetting } from "~/composables/settings"
 import { toggleNestedSetting } from "~/newstore/settings"
+import * as LJSON from "lossless-json"
 
 type PossibleContentTypes = Exclude<
   ValidContentTypes,
@@ -185,8 +188,8 @@ const prettifyRequestBody = () => {
   let prettifyBody = ""
   try {
     if (body.value.contentType.endsWith("json")) {
-      const jsonObj = JSON.parse(rawParamsBody.value as string)
-      prettifyBody = JSON.stringify(jsonObj, null, 2)
+      const jsonObj = LJSON.parse(rawParamsBody.value as string)
+      prettifyBody = LJSON.stringify(jsonObj, undefined, 2) as string
     } else if (body.value.contentType === "application/xml") {
       prettifyBody = prettifyXML(rawParamsBody.value as string)
     }
